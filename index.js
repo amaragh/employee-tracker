@@ -105,19 +105,3 @@ promptOptions()
     .catch(err => {
         console.log(err);
     });
-
-// promptOptions()
-//     .then(answers => {
-//         if (answers.viewOrAdd === 'View All Departments') {
-//             getDepartments();
-//         }
-//         if (answers.viewOrAdd === 'View All Roles') {
-//             getRoles();
-//         }
-//         if (answers.viewOrAdd === 'View All Employees') {
-//             getEmployees();
-//         }
-//     })
-//     .catch(err => {
-//         console.log(err);
-//     });
