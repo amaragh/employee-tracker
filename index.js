@@ -1,4 +1,5 @@
 const inquirer = require('inquirer');
+const handleResponses = require('./lib/handleResponses');
 
 const promptOptions = () => {
 
@@ -6,8 +7,8 @@ const promptOptions = () => {
         {
             type: 'list',
             name: 'viewOrAdd',
-            message: 'What would you like to do??',
-            choices: ['View All Employees', 'Add Employee', 'Update Employee Role', 'View All Roles', 'Add Role', 'View All Departments', 'Add Department']
+            message: 'What would you like to do?',
+            choices: ['View All Employees', 'Add Employee', 'Update Employee Role', 'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Quit']
         },
         {
             type: 'input',
@@ -44,7 +45,7 @@ const promptOptions = () => {
         },
         {
             type: 'input',
-            name: 'updateEmp',
+            name: 'empToUpdate',
             message: "Which employee's role do you want to update?",
             choices: [],
             when: (answers) => {
@@ -53,7 +54,7 @@ const promptOptions = () => {
         },
         {
             type: 'input',
-            name: 'empNewRole',
+            name: 'empUpdatedRole',
             message: "Which role do you want to assign to the selected employee?",
             choices: [],
             when: (answers) => {
@@ -94,6 +95,29 @@ const promptOptions = () => {
             }
         }
     ])
+    // .then(answers => {return answers});
 };
 
-promptOptions();
+promptOptions()
+    .then(answers => {
+        return handleResponses(answers);
+    })
+    .catch(err => {
+        console.log(err);
+    });
+
+// promptOptions()
+//     .then(answers => {
+//         if (answers.viewOrAdd === 'View All Departments') {
+//             getDepartments();
+//         }
+//         if (answers.viewOrAdd === 'View All Roles') {
+//             getRoles();
+//         }
+//         if (answers.viewOrAdd === 'View All Employees') {
+//             getEmployees();
+//         }
+//     })
+//     .catch(err => {
+//         console.log(err);
+//     });
