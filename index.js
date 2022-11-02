@@ -1,5 +1,8 @@
 const inquirer = require('inquirer');
-const handleResponses = require('./lib/handleResponses');
+const db = require('./db/connection');
+const Department = require('./lib/department');
+const Role = require('./lib/role');
+const Employee = require('./lib/employee');
 
 const promptOptions = () => {
 
@@ -95,13 +98,94 @@ const promptOptions = () => {
             }
         }
     ])
-    // .then(answers => {return answers});
+        .then(answers => { return answers });
 };
 
-promptOptions()
-    .then(answers => {
-        return handleResponses(answers);
-    })
-    .catch(err => {
-        console.log(err);
+function loadPrompts() {
+    promptOptions()
+        .then(answers => {
+            return handleResponses(answers);
+        })
+        .catch(err => {
+            console.log(err);
+        });
+};
+
+
+function handleResponses(responses) {
+    let option = responses.viewOrAdd;
+    switch (option) {
+        case 'View All Employees':
+            viewEmployees();
+            break;
+        case 'Add Employee':
+            break;
+        case 'Update Employee Role':
+            break;
+        case 'View All Roles':
+            let role = new Role();
+            return role.getRoles();
+            break;
+        case 'Add Role':
+            break;
+        case 'View All Departments':
+            viewDepartments();
+            break;
+        case 'Add Department':
+            break;
+        default:
+            quit();
+
+    };
+};
+
+function quit() {
+    console.log('Goodbye!');
+    process.exit();
+};
+
+function viewDepartments() {
+    let sql = `SELECT * FROM department`;
+
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        // const transformed = rows.reduce((acc, { id, ...x }) => { 
+        //     acc[id] = x; 
+        //     return acc 
+        // }, {})
+        // console.table(transformed);
+
+        console.table(rows);
+        loadPrompts();
     });
+
+};
+
+function viewEmployees() {
+
+    let sql = `SELECT e.id, e.first_name, e.last_name, 
+                    role.title AS title, department.name AS department, role.salary AS salary, 
+                    concat(m.first_name,' ', m.last_name) AS manager
+                    FROM employee e
+                    LEFT JOIN role
+                    ON e.role_id = role.id
+                    LEFT JOIN department
+                    ON role.department_id = department.id
+                    LEFT JOIN employee m
+                    ON e.manager_id = m.id`;
+
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+
+        console.table(rows);
+        loadPrompts();
+    });
+};
+
+loadPrompts();
