@@ -1,7 +1,7 @@
 const inquirer = require('inquirer');
 const db = require('./db/connection');
 
-const promptOptions = () => {
+const promptOptions = async () => {
 
     return inquirer.prompt([
         {
@@ -27,36 +27,37 @@ const promptOptions = () => {
             }
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'empRole',
             message: "What is the employee's role?",
+            choices: await roleChoices(),
             when: (answers) => {
                 return answers.viewOrAdd === 'Add Employee';
             }
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'manager',
             message: "Who is the employee's manager?",
-            choices: [],
+            choices: await employeeChoices(),
             when: (answers) => {
                 return answers.viewOrAdd === 'Add Employee';
             }
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'empToUpdate',
             message: "Which employee's role do you want to update?",
-            choices: [],
+            choices: await employeeChoices(),
             when: (answers) => {
                 return answers.viewOrAdd === 'Update Employee Role';
             }
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'empUpdatedRole',
             message: "Which role do you want to assign to the selected employee?",
-            choices: [],
+            choices: await roleChoices(),
             when: (answers) => {
                 return answers.viewOrAdd === 'Update Employee Role';
             }
@@ -89,7 +90,7 @@ const promptOptions = () => {
             type: 'list',
             name: 'roleDept',
             message: "Which department does the role belong to?",
-            choices: [],
+            choices: await departmentChoices(),
             when: (answers) => {
                 return answers.viewOrAdd === 'Add Role';
             }
@@ -108,7 +109,6 @@ function loadPrompts() {
         });
 };
 
-
 function handleResponses(responses) {
     let option = responses.viewOrAdd;
     switch (option) {
@@ -123,28 +123,40 @@ function handleResponses(responses) {
             viewRoles();
             break;
         case 'Add Role':
+            // console.log(responses.newRole, responses.salary, responses.roleDept.id);
+            // addRole();
             break;
         case 'View All Departments':
             viewDepartments();
             break;
         case 'Add Department':
+            addDepartment(responses.newDept);
             break;
         default:
             quit();
-
     };
 };
 
-function quit() {
-    console.log('Goodbye!');
-    process.exit();
+ function employeeChoices() {
+    const sql = `SELECT concat(first_name,' ', last_name) AS value, id FROM employee`;
+    const roles = await db.query(sql);
+    return roles[0];
 };
 
-
+async function roleChoices() {
+    const sql = `SELECT title AS value, id FROM role`;
+    const roles = await db.query(sql);
+    return roles[0];
+};
+async function departmentChoices() {
+    const sql = `SELECT name AS value, id FROM department`;
+    const roles = await db.query(sql);
+    return roles[0];
+};
 
 function viewEmployees() {
 
-    let sql = `SELECT e.id, e.first_name, e.last_name, 
+    const sql = `SELECT e.id, e.first_name, e.last_name, 
                     role.title AS title, department.name AS department, role.salary AS salary, 
                     concat(m.first_name,' ', m.last_name) AS manager
                     FROM employee e
@@ -160,17 +172,16 @@ function viewEmployees() {
             res.status(500).json({ error: err.message });
             return;
         }
-
         console.table(rows);
         loadPrompts();
     });
 };
 
 function viewRoles() {
-    let sql = `SELECT role.id,role.title,department.name AS department, role.salary
-    FROM role
-    LEFT JOIN department 
-    ON role.department_id = department.id`;
+    const sql = `SELECT role.id,role.title,department.name AS department, role.salary
+                FROM role
+                LEFT JOIN department 
+                ON role.department_id = department.id`;
 
     db.query(sql, (err, rows) => {
         if (err) {
@@ -178,11 +189,12 @@ function viewRoles() {
             return;
         }
         console.table(rows);
+        loadPrompts();
     });
 };
 
 function viewDepartments() {
-    let sql = `SELECT * FROM department`;
+    const sql = `SELECT * FROM department`;
 
     db.query(sql, (err, rows) => {
         if (err) {
@@ -198,6 +210,51 @@ function viewDepartments() {
         console.table(rows);
         loadPrompts();
     });
+};
+
+
+function addDepartment(deptName) {
+    const sql = `INSERT INTO department (name) VALUE (?)`;
+
+    db.query(sql, deptName, (err, result) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        console.log(`Added ${deptName} to the database`);
+        loadPrompts();
+    });
+};
+
+function addRole(newRole, salary, roleDept) {
+
+    // const deptSql = `SELECT id FROM department where name = ${roleDept}`;
+    // db.query(deptSql, (err, rows) => {
+    //     if (err) {
+    //         res.status(500).json({ error: err.message });
+    //         return;
+    //     }
+    //     console.log(rows);
+
+    // });
+    const sql = `INSERT INTO role (title, salary, department_id) VALUES ("Party Planner II",25000,5)`;
+    const params = [newRole, salary, roleDept];
+
+     
+
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        console.log(`Added ${newRole} to the database`);
+        loadPrompts();
+    });
+};
+
+function quit() {
+    console.log('Goodbye!');
+    process.exit();
 };
 
 loadPrompts();

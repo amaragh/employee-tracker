@@ -11,6 +11,6 @@ const db = mysql.createConnection(
         database: 'company'
     },
     console.log('Connected to the company database.')
-);
+).promise();
 
 module.exports = db;
