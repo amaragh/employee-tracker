@@ -53,6 +53,7 @@ function handleResponses(responses) {
     };
 };
 
+// functions to return a table of all employees at the company
 function viewEmployees() {
 
     const sql = `SELECT e.id, e.first_name, e.last_name, 
@@ -76,6 +77,7 @@ function viewEmployees() {
     });
 };
 
+// functions to return a table of all roles at the company
 function viewRoles() {
     const sql = `SELECT role.id,role.title,department.name AS department, role.salary
                 FROM role
@@ -89,6 +91,7 @@ function viewRoles() {
     });
 };
 
+// functions to return a table of all departments at the company
 function viewDepartments() {
     const sql = `SELECT * FROM department`;
 
@@ -99,6 +102,7 @@ function viewDepartments() {
     });
 };
 
+// add a new employee, provide first name, last name, choose role and manager
 function addEmployee() {
     const roleMgrQuery = `SELECT * from role; SELECT CONCAT (first_name," ",last_name) AS full_name FROM employee;`;
 
@@ -148,6 +152,7 @@ function addEmployee() {
 
 };
 
+// update an existing employee's role
 function updateEmpRole() {
     const empRoleQuery = `SELECT CONCAT (first_name," ",last_name) AS full_name FROM employee; SELECT * from role;`;
 
@@ -186,7 +191,7 @@ function updateEmpRole() {
     })
 
 }
-
+// add a new department
 function addDepartment() {
 
     inquirer.prompt([
@@ -205,6 +210,7 @@ function addDepartment() {
     })
 };
 
+// add a new role, provide name and salary, choose department
 function addRole() {
 
     const deptQuery = `SELECT * FROM department`
