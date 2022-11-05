@@ -23,6 +23,7 @@ function loadPrompts() {
         });
 };
 
+// call functions depending on the response to the prompt
 function handleResponses(responses) {
     let option = responses.viewOrAdd;
     switch (option) {
@@ -91,18 +92,9 @@ function viewRoles() {
 function viewDepartments() {
     const sql = `SELECT * FROM department`;
 
-    db.query(sql, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        // const transformed = rows.reduce((acc, { id, ...x }) => { 
-        //     acc[id] = x; 
-        //     return acc 
-        // }, {})
-        // console.table(transformed);
-
-        console.table(rows);
+    db.query(sql, (err, results) => {
+        if (err) throw err;
+        console.table(results);
         loadPrompts();
     });
 };
@@ -146,7 +138,6 @@ function addEmployee() {
                         VALUES(?,?,(SELECT id from role where title = ?), 
                         (SELECT id FROM (SELECT id FROM employee WHERE CONCAT(first_name," ",last_name) = ?) AS temp))`
             const params = [answer.firstName, answer.lastName, answer.empRole, answer.manager];
-            // console.log(params);
             db.query(sql, params, (err, result) => {
                 if (err) throw err;
             })
@@ -155,27 +146,48 @@ function addEmployee() {
         })
     })
 
-}
+};
 
 function updateEmpRole() {
-    inquirer.prompt([
-        {
-            type: 'list',
-            name: 'empToUpdate',
-            message: "Which employee's role do you want to update?",
-            choices: employeeChoices()
-        },
-        {
-            type: 'list',
-            name: 'empUpdatedRole',
-            message: "Which role do you want to assign to the selected employee?",
-            choices: roleChoices()
-        }
-    ])
+    const empRoleQuery = `SELECT CONCAT (first_name," ",last_name) AS full_name FROM employee; SELECT * from role;`;
+
+    db.query(empRoleQuery, (err, result) => {
+        if (err) throw err;
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'empToUpdate',
+                message: "Which employee's role do you want to update?",
+                choices: function () {
+                    let empArr = result[0].map(emp => emp.full_name);
+                    return empArr;
+                }
+            },
+            {
+                type: 'list',
+                name: 'empUpdatedRole',
+                message: "Which role do you want to assign to the selected employee?",
+                choices: function () {
+                    let roleArr = result[1].map(role => role.title);
+                    return roleArr;
+                }
+            }
+        ]).then(answer => {
+            const sql = `UPDATE employee 
+                        SET role_id = (SELECT id FROM role WHERE title = ?)
+                        WHERE id = (SELECT id FROM (SELECT id FROM employee WHERE CONCAT(first_name," ",last_name) = ?) AS temp)`
+            let params = [answer.empUpdatedRole, answer.empToUpdate];
+            db.query(sql, params, (err, result) => {
+                if (err) throw err;
+            })
+            console.log(`Role for ${answer.empToUpdate} has been updated to ${answer.empUpdatedRole}`);
+            loadPrompts();
+        })
+    })
+
 }
 
 function addDepartment() {
-    const sql = `INSERT INTO department (name) VALUE (?)`;
 
     inquirer.prompt([
         {
@@ -184,11 +196,9 @@ function addDepartment() {
             message: "What is the name of the department?"
         }
     ]).then(answer => {
+        const sql = `INSERT INTO department (name) VALUE (?)`;
         db.query(sql, answer.newDept, (err, result) => {
-            if (err) {
-                res.status(400).json({ error: err.message });
-                return;
-            }
+            if (err) throw err;
         })
         console.log(`Added ${answer.newDept} department to the database`);
         loadPrompts();
@@ -197,13 +207,10 @@ function addDepartment() {
 
 function addRole() {
 
-    const deptQuery = ` SELECT * FROM department`
+    const deptQuery = `SELECT * FROM department`
 
     db.query(deptQuery, (err, results) => {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
+        if (err) throw err;
         inquirer.prompt([
             {
                 type: 'input',
@@ -225,13 +232,10 @@ function addRole() {
                 }
             }
         ]).then(answer => {
-            let sql = `INSERT INTO role (title, salary, department_id) VALUES ("${answer.newRole}",${answer.salary},(SELECT id from department where name = "${answer.roleDept}"))`;
-            console.log(answer.newRole, answer.salary, answer.roleDept);
-            db.query(sql, (err, result) => {
-                if (err) {
-                    res.status(400).json({ error: err.message });
-                    return;
-                }
+            const sql = `INSERT INTO role (title, salary, department_id) VALUES (?,?,(SELECT id from department where name = ?))`;
+            let params = [answer.newRole, answer.salary, answer.roleDept];
+            db.query(sql, params, (err, result) => {
+                if (err) throw err;
             })
             console.log(`Added ${answer.newRole} role to the database`);
             loadPrompts();
